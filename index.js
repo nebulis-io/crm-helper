@@ -35,8 +35,6 @@ exports.uuidv4 = exports.clientDyn = void 0;
 const awsSDK = __importStar(require("aws-sdk"));
 const uuid_1 = require("uuid");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const config_json_1 = __importDefault(require("../config.json"));
-const auth_roles_json_1 = __importDefault(require("../auth_roles.json"));
 /**
  * http codes
  */
@@ -109,7 +107,7 @@ const code_500 = (res = { error: "could not process the request" }) => {
 };
 exports.clientDyn = new awsSDK.DynamoDB.DocumentClient();
 class helper {
-    constructor(USER_TABLE_NAME) {
+    constructor(USER_TABLE_NAME, CONFIG, AUTH_ROLES) {
         //used to check either path authorization or method authorization in isAllowed
         this.check_auth = (array, str) => {
             if (array.includes(str)) {
@@ -126,6 +124,8 @@ class helper {
         this.code_404 = code_404;
         this.code_500 = code_500;
         this.USER_TABLE_NAME = USER_TABLE_NAME;
+        this.config = JSON.parse(CONFIG);
+        this.auth_roles = JSON.parse(AUTH_ROLES);
     }
     /**
      * helper
@@ -312,7 +312,7 @@ class helper {
             if (!user) {
                 throw new Error("username or password is incorrect");
             }
-            const token = jsonwebtoken_1.default.sign({ sub: user.id, usr: user.username, role: user.role }, config_json_1.default.secret);
+            const token = jsonwebtoken_1.default.sign({ sub: user.id, usr: user.username, role: user.role }, this.config.secret);
             return token;
         });
     }
@@ -340,11 +340,11 @@ class helper {
         const token = this.get_token(event);
         const path = event.path;
         const httpMethod = event.requestContext.httpMethod;
-        const roles = auth_roles_json_1.default.roles;
+        const roles = this.auth_roles.roles;
         let decodedToken;
         //check if token is valid
         try {
-            decodedToken = jsonwebtoken_1.default.verify(token, config_json_1.default.secret);
+            decodedToken = jsonwebtoken_1.default.verify(token, this.config.secret);
         }
         catch (error) {
             return false;
