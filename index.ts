@@ -121,7 +121,7 @@ export default class helper {
     config: { secret: string; };
     auth_roles: { roles: any; };
 
-    constructor(USER_TABLE_NAME: string, CONFIG: { secret: string; }, AUTH_ROLES: { roles: any; }) {
+    constructor(USER_TABLE_NAME: string, CONFIG: string, AUTH_ROLES: string) {
         this.code_200 = code_200;
         this.code_400 = code_400;
         this.code_401 = code_401;
@@ -129,8 +129,8 @@ export default class helper {
         this.code_404 = code_404;
         this.code_500 = code_500;
         this.USER_TABLE_NAME = USER_TABLE_NAME;
-        this.config = CONFIG;
-        this.auth_roles = AUTH_ROLES;
+        this.config = JSON.parse(CONFIG);
+        this.auth_roles = JSON.parse(AUTH_ROLES);
     }
     /**
      * helper
