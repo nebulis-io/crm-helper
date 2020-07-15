@@ -126,6 +126,22 @@ class helper {
         this.USER_TABLE_NAME = USER_TABLE_NAME;
         this.config = JSON.parse(CONFIG);
         this.auth_roles = JSON.parse(AUTH_ROLES);
+        /* binding to this */
+        this.check = this.check.bind(this);
+        this.check_id_in_table = this.check_id_in_table.bind(this);
+        this.get_table = this.get_table.bind(this);
+        this.get_element_by_id = this.get_element_by_id.bind(this);
+        this.get = this.get.bind(this);
+        this.post = this.post.bind(this);
+        this.del = this.del.bind(this);
+        this.put = this.put.bind(this);
+        this.basic_crud_handler = this.basic_crud_handler.bind(this);
+        this.base_handler = this.base_handler.bind(this);
+        this.auth = this.auth.bind(this);
+        this.check_bearer_struct = this.check_bearer_struct.bind(this);
+        this.get_token = this.get_token.bind(this);
+        this.check_auth = this.check_auth.bind(this);
+        this.isAllowed = this.isAllowed.bind(this);
     }
     /**
      * helper
