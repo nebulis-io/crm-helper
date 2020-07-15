@@ -3,7 +3,7 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true,
-        "outDir": "bin",
+        "outDir": "",
         "target": "es2016",
         "module": "commonjs",
         "moduleResolution": "node",
