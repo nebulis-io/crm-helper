@@ -1,8 +1,7 @@
 import * as awsSDK from "aws-sdk";
 import { v4 } from 'uuid';
 import jwt from "jsonwebtoken";
-import config from "../config.json";
-import auth_roles from "../auth_roles.json";
+
 
 export interface ICRUDFunc {
     get(event: any, tableName: any, keys: string[]): any;
@@ -119,8 +118,10 @@ export default class helper {
     code_404: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
     code_500: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
     USER_TABLE_NAME: string;
+    config: { secret: string; };
+    auth_roles: { roles: any; };
 
-    constructor(USER_TABLE_NAME: string) {
+    constructor(USER_TABLE_NAME: string, CONFIG: { secret: string; }, AUTH_ROLES: { roles: any; }) {
         this.code_200 = code_200;
         this.code_400 = code_400;
         this.code_401 = code_401;
@@ -128,6 +129,8 @@ export default class helper {
         this.code_404 = code_404;
         this.code_500 = code_500;
         this.USER_TABLE_NAME = USER_TABLE_NAME;
+        this.config = CONFIG;
+        this.auth_roles = AUTH_ROLES;
     }
     /**
      * helper
@@ -343,7 +346,7 @@ export default class helper {
         if (!user) {
             throw new Error("username or password is incorrect");
         }
-        const token = jwt.sign({ sub: user.id, usr: user.username, role: user.role }, config.secret);
+        const token = jwt.sign({ sub: user.id, usr: user.username, role: user.role }, this.config.secret);
         return token;
     }
 
@@ -388,12 +391,12 @@ export default class helper {
         const token: string = this.get_token(event);
         const path = event.path;
         const httpMethod: string = event.requestContext.httpMethod;
-        const roles: any = auth_roles.roles;
+        const roles: any = this.auth_roles.roles;
         let decodedToken: any;
 
         //check if token is valid
         try {
-            decodedToken = jwt.verify(token, config.secret);
+            decodedToken = jwt.verify(token, this.config.secret);
         }
         catch (error) {
             return false;

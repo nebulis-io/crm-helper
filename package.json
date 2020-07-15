@@ -23,5 +23,14 @@
     "homepage": "https://github.com/nebulis-io/crm-helper#readme",
     "publishConfig": {
         "registry": "https://npm.pkg.github.com/"
+    },
+    "dependencies": {
+        "aws-sdk": "^2.713.0",
+        "jsonwebtoken": "^8.5.1",
+        "uuid": "^8.2.0"
+    },
+    "devDependencies": {
+        "@types/jsonwebtoken": "^8.5.0",
+        "@types/uuid": "^8.0.0"
     }
 }
