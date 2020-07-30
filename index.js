@@ -36,7 +36,7 @@ const awsSDK = __importStar(require("aws-sdk"));
 const uuid_1 = require("uuid");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 /**
- * http codes
+ * http codes functions: to avoid writing a code manually each time it's needed
  */
 const code_200 = (res = { message: "ok" }, headers = {}) => {
     return {
@@ -106,9 +106,17 @@ const code_500 = (res = { error: "could not process the request" }) => {
     };
 };
 exports.clientDyn = new awsSDK.DynamoDB.DocumentClient();
+/**
+ * helper class to avoid exporting each function manually
+ */
 class helper {
     constructor(USER_TABLE_NAME, CONFIG, AUTH_ROLES) {
-        //used to check either path authorization or method authorization in isAllowed
+        /**
+         * function used to check either path authorization or method authorization in isAllowed
+         * as defined in user_roles.json in the bot folder.
+         * @param array is either the array containing allowed paths or the array containing allowed methods
+         * @param str is either a path to check or a method to check
+         */
         this.check_auth = (array, str) => {
             if (array.includes(str)) {
                 return true;
@@ -124,9 +132,9 @@ class helper {
         this.code_404 = code_404;
         this.code_500 = code_500;
         this.USER_TABLE_NAME = USER_TABLE_NAME;
-        this.config = JSON.parse(CONFIG);
-        this.auth_roles = JSON.parse(AUTH_ROLES);
-        /* binding to this */
+        this.config = JSON.parse(CONFIG); //parsing because it's a process.env variable
+        this.auth_roles = JSON.parse(AUTH_ROLES); //parsing because the auth roles are passed via process.env so it must be a string
+        /* binding to this to avoid fuckery*/
         this.check = this.check.bind(this);
         this.check_id_in_table = this.check_id_in_table.bind(this);
         this.get_table = this.get_table.bind(this);
@@ -144,26 +152,37 @@ class helper {
         this.isAllowed = this.isAllowed.bind(this);
     }
     /**
-     * helper
+     * part for making API logic creation easier
+     */
+    /**
+     * generic function to check if all the properties do exist.
+     * returns a boolean, true if each property does exist, false otherwise
+     * @param arr an array of string that contains the properties to check
+     * @param obj the object to check
      */
     check(arr, obj) {
         console.log("obj", obj);
         for (let key of arr) {
             if (!(obj.hasOwnProperty(key))) {
-                console.log("clé fausse");
+                console.log("not existing key");
                 return false;
             }
             if (obj[key] == null) {
-                console.log("obj null");
+                console.log("null object");
                 return false;
             }
             if (typeof obj[key] == "string" && obj[key].length == 0) {
-                console.log("chaine vide");
+                console.log("empty string");
                 return false;
             }
         }
         return true;
     }
+    /**
+     * generic function to check if an id is existing in a table
+     * @param id the id to check
+     * @param table the table to check in
+     */
     check_id_in_table(id, table) {
         return __awaiter(this, void 0, void 0, function* () {
             const res = yield exports.clientDyn.scan({
@@ -173,6 +192,12 @@ class helper {
             return res.includes(id);
         });
     }
+    /**
+     * generic function to get all the records attributes
+     * @param tableName the table to get all the records
+     * @param keys attributes of the records: if the array is empty,
+     * it will get all the attributes of the records
+     */
     get_table(tableName, keys = []) {
         return __awaiter(this, void 0, void 0, function* () {
             const table_data = (keys.length > 0) ? { TableName: tableName, AttributesToGet: keys } : { TableName: tableName };
@@ -180,27 +205,41 @@ class helper {
             return res;
         });
     }
+    /**
+     * generic function to get an element by its id
+     * @param id the id of the record to get
+     * @param tableName the table to look in
+     * @param keys the attributes to get, an empty array will get all the attributes
+     */
     get_element_by_id(id, tableName, keys = []) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.check_id_in_table(id, tableName)) {
                 return null;
             }
-            const table_data = (keys.length > 0) ? {
-                TableName: tableName,
-                AttributesToGet: keys,
-                Key: {
-                    id: id
-                }
-            } : {
-                TableName: tableName,
-                Key: {
-                    id: id
-                }
-            };
+            const table_data = (keys.length > 0) ?
+                {
+                    TableName: tableName,
+                    AttributesToGet: keys,
+                    Key: {
+                        id: id
+                    }
+                } :
+                {
+                    TableName: tableName,
+                    Key: {
+                        id: id
+                    }
+                };
             const res = yield exports.clientDyn.get(table_data).promise().then(result => result.Item);
             return res;
         });
     }
+    /**
+     * generic function used to process GET requests from the endpoint
+     * @param event the event sent by APIGATEWAY
+     * @param tableName the table to interact with
+     * @param keys attributes of the record to get for the item corresponding to the id in the event
+     */
     get(event, tableName, keys = []) {
         return __awaiter(this, void 0, void 0, function* () {
             if (event.pathParameters != null) {
@@ -220,6 +259,12 @@ class helper {
             }
         });
     }
+    /**
+     * generic function to process POST requests from the endpoint
+     * @param event the event sent by APIGATEWAY
+     * @param check_func the function used to check if the data is correctly structured
+     * @param tableName the table to interact with
+     */
     post(event, check_func, tableName) {
         return __awaiter(this, void 0, void 0, function* () {
             const reqBody = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
@@ -237,6 +282,11 @@ class helper {
             }
         });
     }
+    /**
+     * generic function to process DEL requests from the endpoint
+     * @param event the event sent by APIGATEWAY
+     * @param tableName the table to interact with
+     */
     del(event, tableName) {
         return __awaiter(this, void 0, void 0, function* () {
             if (event.pathParameters !== null &&
@@ -256,6 +306,12 @@ class helper {
             }
         });
     }
+    /**
+     * generic function to process PUT requests from the endpoint
+     * @param event the event sent by APIGATEWAY
+     * @param check_func the function used to check if the data is correctly structured
+     * @param tableName the table to interact with
+     */
     put(event, check_func, tableName) {
         return __awaiter(this, void 0, void 0, function* () {
             const reqBody = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
@@ -285,6 +341,14 @@ class helper {
             }
         });
     }
+    /**
+     * generic function to create an APIGATEWAY handler
+     * @param tableName the name of the table that the handler will interact with
+     * @param check_post the function used to check data structure for post operations
+     * @param check_put the function used to check data structure for put operations
+     * @param keys_get the attributes of the records to querry for the get operations, empty one will get all the attributes
+     * @param crud_func an object having the get, put, post, del functions for the handler
+     */
     basic_crud_handler(tableName, check_post, check_put, keys_get = [], crud_func) {
         return (event) => __awaiter(this, void 0, void 0, function* () {
             const auth = this.isAllowed(event);
@@ -309,6 +373,13 @@ class helper {
             return code_500();
         });
     }
+    /**
+     * wrapper function to basic_crud_handler to return a basic handler with less params
+     * @param tableName the name of the table that the handler will interact with
+     * @param check_post the function used to check data structure for post operations
+     * @param check_put the function used to check data structure for put operations
+     * @param keys_get the attributes of the records to querry for the get operations, empty one will get all the attributes
+     */
     base_handler(tableName, check_post, check_put, keys_get = []) {
         const crud = {
             get: this.get,
@@ -321,6 +392,12 @@ class helper {
     /******************
      * auth functions *
      ******************/
+    /**
+     * a login function that returns a token corresponding to the user.
+     * it contains the user id, the username and the user role.
+     * @param username username
+     * @param password password
+     */
     auth(username, password) {
         return __awaiter(this, void 0, void 0, function* () {
             const arr = yield this.get_table(this.USER_TABLE_NAME);
@@ -332,6 +409,11 @@ class helper {
             return token;
         });
     }
+    /**
+     * a function to check the integrity of the bearer token in the event.
+     * returns true if it's correct.
+     * @param event the event to check
+     */
     check_bearer_struct(event) {
         if (!event.headers.hasOwnProperty("Authorization") || event.headers.Authorization == null) {
             return false;
@@ -343,10 +425,19 @@ class helper {
         }
         return true;
     }
+    /**
+     * simple function to get the token, will cause troubles if called before proper
+     * structure check.
+     * @param event the event containing the token
+     */
     get_token(event) {
         //check on the Authorization field must be performed before calling this function
         return event.headers.Authorization.split(" ")[1];
     }
+    /**
+     * function to know if a token is allowed or not
+     * @param event event containing the token to check
+     */
     isAllowed(event) {
         //check if bearer token is present
         if (!this.check_bearer_struct(event)) {
