@@ -36,7 +36,7 @@ const code_200 = (res: any = { message: "ok" }, headers: any = {}) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count",
             ...headers
         }
@@ -50,7 +50,7 @@ const code_400 = (res: any = { error: "bad request" }) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count"
         }
     };
@@ -63,7 +63,7 @@ const code_401 = (res: any = { error: "unauthorized" }) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count"
         }
     };
@@ -76,7 +76,7 @@ const code_403 = (res: any = { error: "forbidden" }) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count"
         }
     };
@@ -89,7 +89,7 @@ const code_404 = (res: any = { error: "not found" }) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count"
         }
     };
@@ -102,7 +102,7 @@ const code_500 = (res: any = { error: "could not process the request" }) => {
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "*",
             "Access-Control-Expose-Headers": "X-Total-Count"
         }
     };

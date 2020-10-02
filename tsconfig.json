@@ -1,21 +1,15 @@
 {
     "compilerOptions": {
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "strict": true,
-        "outDir": "",
-        "target": "es2016",
+        "target": "es6",
         "module": "commonjs",
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "experimentalDecorators": true,
-        "pretty": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "forceConsistentCasingInFileNames": true,
-        "allowSyntheticDefaultImports": true
+        "lib": ["es2017", "es7", "es6", "dom"],
+        "outDir": "dist",
+        "declaration": true,
+        "strict": true,
+        "esModuleInterop": true,
     },
-    "files": [
-        "index.ts"
+    "exclude": [
+        "node_modules",
+        "dist"
     ]
 }
