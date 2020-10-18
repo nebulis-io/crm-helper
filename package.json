@@ -1,6 +1,6 @@
 {
     "name": "@nebulis-io/crm-helper",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "description": "helper package for the crm of nebulis.io",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
         "nebulis.io"
     ],
     "author": "Alexis Goblot, Thomas Nicollet",
-    "license": "ISC",
+    "license": "UNLICENSED",
     "bugs": {
         "url": "https://github.com/nebulis-io/crm-helper/issues"
     },
