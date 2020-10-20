@@ -1,13 +1,18 @@
-import * as awsSDK from "aws-sdk";
+import * as AWS from "aws-sdk";
 import { v4 } from 'uuid';
 import jwt from "jsonwebtoken";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda"
 
+export type GenericObject = { [key: string]: any };
+export type Headers = { [header: string]: boolean | number | string };
+export type CheckFunction = (obj: GenericObject) => boolean;
+export type ResponseMaker = (res?: GenericObject, headers?: Headers) => APIGatewayProxyResult;
 
 export interface ICRUDFunc {
-    get(event: any, tableName: any, keys: string[]): any;
-    post(event: any, check_func: (obj: any) => boolean, tableName: any): any;
-    del(event: any, tableName: any): any;
-    put(event: any, check_func: (obj: any) => boolean, tableName: any): any;
+    get: (event: APIGatewayProxyEvent, tableName: string, keys: string[]) => Promise<APIGatewayProxyResult>;
+    post: (event: APIGatewayProxyEvent, tableName: string, check_func: CheckFunction) => Promise<APIGatewayProxyResult>;
+    del: (event: APIGatewayProxyEvent, tableName: string) => Promise<APIGatewayProxyResult>;
+    put: (event: APIGatewayProxyEvent, tableName: string, check_func: CheckFunction) => Promise<APIGatewayProxyResult>;
 }
 
 export interface IClient {
@@ -26,12 +31,13 @@ export interface IDocument {
     file_name: string;
 }
 
+
 /**
  * http codes functions: to avoid writing a code manually each time it's needed
  */
-const code_200 = (res: any = { message: "ok" }, headers: any = {}) => {
+const make_response = (code: number, res: GenericObject, headers: Headers = {}): APIGatewayProxyResult => {
     return {
-        statusCode: 200,
+        statusCode: code,
         body: JSON.stringify(res),
         headers: {
             "Access-Control-Allow-Origin": "*",
@@ -43,97 +49,29 @@ const code_200 = (res: any = { message: "ok" }, headers: any = {}) => {
     };
 }
 
-const code_400 = (res: any = { error: "bad request" }) => {
-    return {
-        statusCode: 400,
-        body: JSON.stringify(res),
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Expose-Headers": "X-Total-Count"
-        }
-    };
-}
 
-const code_401 = (res: any = { error: "unauthorized" }) => {
-    return {
-        statusCode: 401,
-        body: JSON.stringify(res),
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Expose-Headers": "X-Total-Count"
-        }
-    };
-}
+export const code_200: ResponseMaker = (res, headers) => make_response(200, res || { message: "ok" }, headers);
+export const code_400: ResponseMaker = (res, headers) => make_response(400, res || { error: "bad request" }, headers);
+export const code_401: ResponseMaker = (res, headers) => make_response(401, res || { error: "unautorized" }, headers);
+export const code_403: ResponseMaker = (res, headers) => make_response(403, res || { error: "forbidden" }, headers);
+export const code_404: ResponseMaker = (res, headers) => make_response(404, res || { error: "not found" }, headers);
+export const code_500: ResponseMaker = (res, headers) => make_response(500, res || { error: "could not process the request" }, headers);
 
-const code_403 = (res: any = { error: "forbidden" }) => {
-    return {
-        statusCode: 403,
-        body: JSON.stringify(res),
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Expose-Headers": "X-Total-Count"
-        }
-    };
-}
+export const clientDyn = new AWS.DynamoDB.DocumentClient();
 
-const code_404 = (res: any = { error: "not found" }) => {
-    return {
-        statusCode: 404,
-        body: JSON.stringify(res),
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Expose-Headers": "X-Total-Count"
-        }
-    };
-}
-
-const code_500 = (res: any = { error: "could not process the request" }) => {
-    return {
-        statusCode: 500,
-        body: JSON.stringify(res),
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Expose-Headers": "X-Total-Count"
-        }
-    };
-}
-
-export const clientDyn = new awsSDK.DynamoDB.DocumentClient();
 
 /**
  * helper class to avoid exporting each function manually
  */
 export default class helper {
-    code_200: (res?: any, headers?: any) => { statusCode: number; body: string; headers: any; };
-    code_400: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
-    code_401: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
-    code_403: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
-    code_404: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
-    code_500: (res?: any) => { statusCode: number; body: string; headers: { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; "Access-Control-Expose-Headers": string; }; };
-    USER_TABLE_NAME: string;   //table containing the users for the auth part of this package
+    userTableName: string;   //table containing the users for the auth part of this package
     config: { secret: string; }; //secret for the token gen
-    auth_roles: { roles: any; }; // object containing the roles defined for the auth check
+    auth_roles: { roles: { [role_name: string]: { methods: string[], paths: string[], decayPeriod: number } }; }; // object containing the roles defined for the auth check
 
-    constructor(USER_TABLE_NAME: string, CONFIG: string, AUTH_ROLES: string) {
-        this.code_200 = code_200;
-        this.code_400 = code_400;
-        this.code_401 = code_401;
-        this.code_403 = code_403;
-        this.code_404 = code_404;
-        this.code_500 = code_500;
-        this.USER_TABLE_NAME = USER_TABLE_NAME;
-        this.config = JSON.parse(CONFIG); //parsing because it's a process.env variable
-        this.auth_roles = JSON.parse(AUTH_ROLES); //parsing because the auth roles are passed via process.env so it must be a string
+    constructor(userTableName: string, config: string, authRoles: string) {
+        this.userTableName = userTableName;
+        this.config = JSON.parse(config); //parsing because it's a process.env variable
+        this.auth_roles = JSON.parse(authRoles); //parsing because the auth roles are passed via process.env so it must be a string
 
         /* binding to this to avoid fuckery*/
 
@@ -164,7 +102,7 @@ export default class helper {
      * @param arr an array of string that contains the properties to check
      * @param obj the object to check
      */
-    check(arr: string[], obj: any) {
+    check(arr: string[], obj: GenericObject) {
         console.log("obj", obj);
         for (let key of arr) {
             if (!(obj.hasOwnProperty(key))) {
@@ -186,30 +124,33 @@ export default class helper {
     }
 
     /**
-     * generic function to check if an id is existing in a table
-     * @param id the id to check
-     * @param table the table to check in
+     * Check if id exists in table
+     * @param id id to check
+     * @param table table to check in
+     * @returns boolean stating if id exists in table
      */
-    async check_id_in_table(id: string, table: any) {
-        const res = await clientDyn.scan({
-            TableName: table.name.get(),
+    async check_id_in_table(id: string, tableName: string): Promise<boolean | undefined> {
+        return clientDyn.scan({
+            TableName: tableName,
             AttributesToGet: ["id"],
-        }).promise().then(result => result.Items?.map(item => item.id));
-        return res!.includes(id);
+        }).promise()
+            .then(result => result.Items?.map(item => item.id))
+            .then(ids => ids?.includes(id));
     }
 
     /**
      * generic function to get all the records attributes
      * @param tableName the table to get all the records
-     * @param keys attributes of the records: if the array is empty, 
-     * it will get all the attributes of the records
+     * @param keys attributes of the records: if the array is empty,
+     * @returns all the attributes of the records
      */
-    async get_table(tableName: any, keys: string[] = []) {
+    get_table(tableName: string, keys: string[] = []): Promise<AWS.DynamoDB.DocumentClient.ItemList | undefined> {
+        const table_data = {
+            TableName: tableName,
+            AttributesToGet: (keys.length > 0) ? keys : undefined
+        };
 
-        const table_data = (keys.length > 0) ? { TableName: tableName, AttributesToGet: keys } : { TableName: tableName };
-
-        const res = await clientDyn.scan(table_data).promise().then((result: any) => result.Items);
-        return res;
+        return clientDyn.scan(table_data).promise().then(result => result.Items);
     }
 
     /**
@@ -218,8 +159,7 @@ export default class helper {
      * @param tableName the table to look in
      * @param keys the attributes to get, an empty array will get all the attributes
      */
-    async get_element_by_id(id: string, tableName: any, keys: string[] = []) {
-
+    async get_element_by_id(id: string, tableName: string, keys: string[] = []) {
         if (!this.check_id_in_table(id, tableName)) {
             return null;
         }
@@ -250,7 +190,7 @@ export default class helper {
      * @param tableName the table to interact with
      * @param keys attributes of the record to get for the item corresponding to the id in the event
      */
-    async get(event: any, tableName: any, keys: string[] = []) {
+    async get(event: APIGatewayProxyEvent, tableName: string, keys: string[] = []): Promise<APIGatewayProxyResult> {
 
         if (event.pathParameters != null) {
             if (event.pathParameters.hasOwnProperty("id") && event.pathParameters.id != null) {
@@ -259,14 +199,15 @@ export default class helper {
                 if (res == null) {
                     return code_404();
                 }
-
                 return code_200(res);
             }
-
             return code_400()
         }
         else {
-            const res = (keys.length > 0) ? await this.get_table(tableName, keys) : await this.get_table(tableName);
+            const res = await this.get_table(tableName, keys);
+            if (res === undefined) {
+                return code_500({ error: "Table scan failed" });
+            }
             return code_200(res, { "X-Total-Count": res.length });
         }
     }
@@ -277,11 +218,13 @@ export default class helper {
      * @param check_func the function used to check if the data is correctly structured
      * @param tableName the table to interact with 
      */
-    async post(event: any, check_func: (obj: any) => boolean, tableName: any) {
-        const reqBody: any = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
+    async post(event: APIGatewayProxyEvent, tableName: string, check_func: CheckFunction): Promise<APIGatewayProxyResult> {
+        if (event.body === null) {
+            throw new Error("Null body");
+        }
+        const reqBody = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
 
         if (reqBody !== null && check_func(reqBody)) {
-
             const id = v4();
             const addition = {
                 id: id,
@@ -306,7 +249,7 @@ export default class helper {
      * @param event the event sent by APIGATEWAY
      * @param tableName the table to interact with 
      */
-    async del(event: any, tableName: any) {
+    async del(event: APIGatewayProxyEvent, tableName: string): Promise<APIGatewayProxyResult> {
 
         if (event.pathParameters !== null &&
             event.pathParameters.hasOwnProperty("id") &&
@@ -332,8 +275,11 @@ export default class helper {
      * @param check_func the function used to check if the data is correctly structured
      * @param tableName the table to interact with 
      */
-    async put(event: any, check_func: (obj: any) => boolean, tableName: any) {
-        const reqBody: any = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
+    async put(event: APIGatewayProxyEvent, tableName: string, check_func: CheckFunction): Promise<APIGatewayProxyResult> {
+        if (event.body === null) {
+            throw new Error("Null body");
+        }
+        const reqBody = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, "base64").toString() : event.body);
 
         if (event.pathParameters !== null &&
             event.pathParameters.hasOwnProperty("id") &&
@@ -370,8 +316,8 @@ export default class helper {
      * @param keys_get the attributes of the records to querry for the get operations, empty one will get all the attributes
      * @param crud_func an object having the get, put, post, del functions for the handler
      */
-    basic_crud_handler(tableName: any, check_post: (obj: any) => boolean, check_put: (obj: any) => boolean, keys_get: string[] = [], crud_func: ICRUDFunc) {
-        return async (event: any) => {
+    basic_crud_handler(crud_func: ICRUDFunc, tableName: string, check_post: CheckFunction, check_put: CheckFunction, keys_get: string[] = []) {
+        return async (event: APIGatewayProxyEvent) => {
             const auth = this.isAllowed(event);
             if (auth == null) {
                 return code_403();
@@ -379,23 +325,18 @@ export default class helper {
             if (!this.isAllowed(event)) {
                 return code_401();
             }
-            if (event.requestContext.httpMethod == "GET") {
-                return await crud_func["get"](event, tableName, keys_get);
+            switch (event.requestContext.httpMethod) {
+                case "GET":
+                    return await crud_func.get(event, tableName, keys_get);
+                case "POST":
+                    return await crud_func.post(event, tableName, check_post);
+                case "DELETE":
+                    return await crud_func.del(event, tableName);
+                case "PUT":
+                    return await crud_func.put(event, tableName, check_put);
+                default:
+                    return code_500();
             }
-
-            if (event.requestContext.httpMethod == "POST") {
-                return await crud_func["post"](event, check_post, tableName);
-            }
-
-            if (event.requestContext.httpMethod == "DELETE") {
-                return await crud_func["del"](event, tableName);
-            }
-
-            if (event.requestContext.httpMethod == "PUT") {
-                return await crud_func["put"](event, check_put, tableName);
-            }
-
-            return code_500();
         };
     }
 
@@ -406,32 +347,32 @@ export default class helper {
      * @param check_put the function used to check data structure for put operations
      * @param keys_get the attributes of the records to querry for the get operations, empty one will get all the attributes
      */
-    base_handler(tableName: any, check_post: (obj: any) => boolean, check_put: (obj: any) => boolean, keys_get: string[] = []) {
-
-        const crud: ICRUDFunc = {
+    base_handler(tableName: string, check_post: CheckFunction, check_put: CheckFunction, keys_get: string[] = []) {
+        return this.basic_crud_handler({
             get: this.get,
             put: this.put,
             post: this.post,
             del: this.del
-        }
-
-        return this.basic_crud_handler(tableName, check_post, check_put, keys_get, crud);
+        }, tableName, check_post, check_put, keys_get);
     }
 
     /******************
      * auth functions *
      ******************/
 
-     /**
-      * a login function that returns a token corresponding to the user.
-      * it contains the user id, the username and the user role.
-      * @param username username
-      * @param password password
-      */
+    /**
+     * a login function that returns a token corresponding to the user.
+     * it contains the user id, the username and the user role.
+     * @param username username
+     * @param password password
+     */
     async auth(username: string, password: string) {
-        const arr: any[] = await this.get_table(this.USER_TABLE_NAME);
-        const user: any = arr.find((u: any) => u.username == username && u.password == password);
-        if (!user) {
+        const arr = await this.get_table(this.userTableName);
+        if (arr === undefined) {
+            throw new Error("Can't query user table");
+        }
+        const user = arr.find(u => u.username == username && u.password == password);
+        if (user === undefined) {
             throw new Error("username or password is incorrect");
         }
         const token = jwt.sign({ sub: user.id, usr: user.username, role: user.role }, this.config.secret);
@@ -443,7 +384,7 @@ export default class helper {
      * returns true if it's correct.
      * @param event the event to check
      */
-    check_bearer_struct(event: any) {
+    check_bearer_struct(event: APIGatewayProxyEvent) {
         if (!event.headers.hasOwnProperty("Authorization") || event.headers.Authorization == null) {
             return false;
         }
@@ -462,12 +403,12 @@ export default class helper {
      * structure check.
      * @param event the event containing the token
      */
-    get_token(event: any) {
+    get_token(event: APIGatewayProxyEvent) {
         //check on the Authorization field must be performed before calling this function
         return event.headers.Authorization.split(" ")[1];
     }
 
-    
+
     /**
      * function used to check either path authorization or method authorization in isAllowed
      * as defined in user_roles.json in the bot folder.
@@ -487,7 +428,7 @@ export default class helper {
      * function to know if a token is allowed or not
      * @param event event containing the token to check
      */
-    isAllowed(event: any) {
+    isAllowed(event: APIGatewayProxyEvent) {
 
         //check if bearer token is present
         if (!this.check_bearer_struct(event)) {
@@ -496,10 +437,10 @@ export default class helper {
 
         console.log(event);
 
-        const token: string = this.get_token(event);
+        const token = this.get_token(event);
         const path = event.path;
-        const httpMethod: string = event.requestContext.httpMethod;
-        const roles: any = this.auth_roles.roles;
+        const httpMethod = event.requestContext.httpMethod;
+        const roles = this.auth_roles.roles;
         let decodedToken: any;
 
         //check if token is valid
@@ -515,7 +456,7 @@ export default class helper {
         //check if authentified used is supposed to access the resource
         if (
             !roles.hasOwnProperty(role) ||
-            !(this.check_auth(roles[role]["paths"], path) && this.check_auth(roles[role]["methods"], httpMethod))
+            !(this.check_auth(roles[role].paths, path) && this.check_auth(roles[role].methods, httpMethod))
         ) {
             return null;
         }
