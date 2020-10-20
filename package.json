@@ -1,6 +1,6 @@
 {
     "name": "@nebulis-io/crm-helper",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "helper package for the crm of nebulis.io",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
